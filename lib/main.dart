@@ -1,92 +1,175 @@
-import 'package:bechdal_app/constants/colors.dart';
-import 'package:bechdal_app/forms/common_form.dart';
-import 'package:bechdal_app/forms/sell_car_form.dart';
-import 'package:bechdal_app/forms/user_form_review.dart';
-import 'package:bechdal_app/provider/category_provider.dart';
-import 'package:bechdal_app/provider/product_provider.dart';
-import 'package:bechdal_app/screens/auth/email_verify_screen.dart';
-import 'package:bechdal_app/screens/auth/login_screen.dart';
-import 'package:bechdal_app/screens/auth/phone_auth_screen.dart';
-import 'package:bechdal_app/screens/auth/register_screen.dart';
-import 'package:bechdal_app/screens/category/product_by_category_screen.dart';
-import 'package:bechdal_app/screens/category/subcategory_screen.dart';
-import 'package:bechdal_app/screens/chat/user_chat_screen.dart';
-import 'package:bechdal_app/screens/home_screen.dart';
-import 'package:bechdal_app/screens/location_screen.dart';
-import 'package:bechdal_app/screens/main_navigatiion_screen.dart';
-import 'package:bechdal_app/screens/post/my_post_screen.dart';
-import 'package:bechdal_app/screens/product/product_details_screen.dart';
-import 'package:bechdal_app/screens/profile_screen.dart';
-import 'package:bechdal_app/screens/splash_screen.dart';
-import 'package:bechdal_app/screens/welcome_screen.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
+
+import 'dart:developer';
+
+import 'package:bloc/bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
+import 'package:admin_app/shared/helper/bloc_observer.dart';
+import 'package:admin_app/shared/helper/local_notification.dart';
+import 'package:admin_app/shared/services/local/cache_helper.dart';
+import 'package:admin_app/shared/services/network/dio_helper.dart';
+import 'package:admin_app/shared/styles/styles.dart';
+import 'package:admin_app/ui/screens/splash_screen/splash_screen.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'screens/auth/reset_password_screen.dart';
-import 'screens/category/category_list_screen.dart';
-import 'screens/chat/chat_screen.dart';
+import 'firebase_options.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await FirebaseAppCheck.instance.activate(
-    webRecaptchaSiteKey: 'recaptcha-v3-site-key',
-  );
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => CategoryProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ProductProvider(),
-        )
-      ],
-      child: const Main(),
-    ),
+// Future<void> setUpInteractedMessage() async {
+//   FirebaseMessaging messaging = FirebaseMessaging.instance;
+//
+//   ///Configure notification permissions
+//   //IOS
+//   await FirebaseMessaging.instance
+//       .setForegroundNotificationPresentationOptions(
+//     alert: true, // Required to display a heads up notification
+//     badge: true,
+//     sound: true,
+//   );
+//
+//   //Android
+//   NotificationSettings settings = await messaging.requestPermission(
+//     alert: true,
+//     announcement: false,
+//     badge: true,
+//     carPlay: false,
+//     criticalAlert: false,
+//     provisional: false,
+//     sound: true,
+//   );
+//
+//   log('User granted permission: ${settings.authorizationStatus}');
+//
+//   //Get the message from tapping on the notification when app is not in foreground
+//   RemoteMessage? initialMessage = await messaging.getInitialMessage();
+//
+//   //If the message contains a service, navigate to the admin
+//
+//
+//   //This listens for messages when app is in background
+//
+//   //Listen to messages in Foreground
+//   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+//     RemoteNotification? notification = message.notification;
+//     AndroidNotification? android = message.notification?.android;
+//
+//     //Initialize FlutterLocalNotifications
+//     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+//     FlutterLocalNotificationsPlugin();
+//
+//     const AndroidNotificationChannel channel = AndroidNotificationChannel(
+//       'high_importance', // id
+//       'high_importance', // title
+//       description:
+//       'This channel is used for Schedular app notifications.', // description
+//       importance: Importance.max,
+//     );
+//
+//     await flutterLocalNotificationsPlugin
+//         .resolvePlatformSpecificImplementation<
+//         AndroidFlutterLocalNotificationsPlugin>()
+//         ?.createNotificationChannel(channel);
+//
+//     //Construct local notification using our created channel
+//     if (notification != null && android != null) {
+//       flutterLocalNotificationsPlugin.show(
+//           notification.hashCode,
+//           notification.title,
+//           notification.body,
+//           NotificationDetails(
+//             android: AndroidNotificationDetails(
+//               channel.id,
+//               channel.name,
+//               channelDescription: channel.description,
+//               icon: "@mipmap/ic_launcher", //Your app icon goes here
+//               // other properties...
+//             ),
+//           ));
+//     }
+//   });
+// }
+
+
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
+
+
+void main() {
+  BlocOverrides.runZoned(
+        () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      if (Firebase.apps.length == 0) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+      WidgetsFlutterBinding.ensureInitialized();
+
+      await NotificationService().initNotification();
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+      await Firebase.initializeApp();
+
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+      await FirebaseMessaging.instance.getToken();
+
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+
+      print('User granted permission: ${settings.authorizationStatus}');
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        print('Message data: ${message.data}');
+
+        if (message.notification != null) {
+          print('Message also contained a notification: ${message.notification}');
+        }
+      });
+      Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+        // If you're going to use other Firebase services in the background, such as Firestore,
+        // make sure you call `initializeApp` before using other Firebase services.
+        await Firebase.initializeApp();
+
+        print("Handling a background message: ${message.messageId}");
+      }
+
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      print(await FirebaseMessaging.instance.getToken());
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+
+        NotificationService().showNotification(
+            1, message.notification!.title!, message.notification!.body!);
+      });
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {});
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      await CachedHelper.init();
+      DioHelper.init();
+
+      runApp(MyApp());
+    },
+    blocObserver: MyBlocObserver(),
   );
 }
 
-class Main extends StatelessWidget {
-  const Main({Key? key}) : super(key: key);
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        theme: ThemeData(
-          primaryColor: blackColor,
-          backgroundColor: whiteColor,
-          fontFamily: 'Oswald',
-          scaffoldBackgroundColor: whiteColor,
-        ),
-        debugShowCheckedModeBanner: false,
-        initialRoute: SplashScreen.screenId,
-        routes: {
-          SplashScreen.screenId: (context) => const SplashScreen(),
-          LoginScreen.screenId: (context) => const LoginScreen(),
-          PhoneAuthScreen.screenId: (context) => const PhoneAuthScreen(),
-          LocationScreen.screenId: (context) => const LocationScreen(),
-          HomeScreen.screenId: (context) => const HomeScreen(),
-          WelcomeScreen.screenId: (context) => const WelcomeScreen(),
-          RegisterScreen.screenId: (context) => const RegisterScreen(),
-          EmailVerifyScreen.screenId: (context) => const EmailVerifyScreen(),
-          ResetPasswordScreen.screenId: (context) =>
-              const ResetPasswordScreen(),
-          CategoryListScreen.screenId: (context) => const CategoryListScreen(),
-          SubCategoryScreen.screenId: (context) => const SubCategoryScreen(),
-          MainNavigationScreen.screenId: (context) =>
-              const MainNavigationScreen(),
-          ChatScreen.screenId: (context) => const ChatScreen(),
-          MyPostScreen.screenId: (context) => const MyPostScreen(),
-          ProfileScreen.screenId: (context) => const ProfileScreen(),
-          SellCarForm.screenId: (context) => const SellCarForm(),
-          UserFormReview.screenId: (context) => const UserFormReview(),
-          CommonForm.screenId: (context) => const CommonForm(),
-          ProductDetail.screenId: (context) => const ProductDetail(),
-          ProductByCategory.screenId: (context) => const ProductByCategory(),
-          UserChatScreen.screenId: (context) => const UserChatScreen(),
-        });
+      debugShowCheckedModeBanner: false,
+      title: 'Location',
+      theme: ThemeManger.setLightTheme(),
+      home: SplashScreen(),
+    );
   }
 }

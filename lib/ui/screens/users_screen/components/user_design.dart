@@ -51,7 +51,7 @@ class UserDesign extends StatelessWidget {
                   ),
 */
                   CircleAvatar(
-                    backgroundImage: userModel.image == ConstantsManger.DEFULT
+                    backgroundImage: userModel.image == null
                         ? AssetImage("assets/images/defult_image.png")
                         : NetworkImage(userModel.image!) as ImageProvider,
                     backgroundColor: Colors.white,

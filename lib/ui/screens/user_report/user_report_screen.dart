@@ -1,29 +1,37 @@
+import 'package:admin_app/animation/faidAnimation.dart';
+import 'package:admin_app/ui/screens/user_report/cubit/calc.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:admin_app/shared/helper/mangers/colors.dart';
-import 'package:admin_app/shared/helper/mangers/size_config.dart';
-import 'package:admin_app/shared/helper/methods.dart';
-import 'package:admin_app/ui/components/custom_button.dart';
-import 'package:admin_app/ui/screens/animated_map/animated_map.dart';
-import 'package:admin_app/ui/screens/user_report/cubit/user_report_cubit.dart';
+import 'package:intl/intl.dart';
 import '../../../model/location_model.dart';
+import '../../../models/visitCount.dart';
+import '../../../shared/helper/mangers/colors.dart';
 import '../../../shared/helper/mangers/constants.dart';
+import '../../../shared/helper/mangers/size_config.dart';
+import '../../../shared/helper/methods.dart';
 import '../../components/app_text.dart';
+import '../../components/custom_button.dart';
+import '../animated_map/animated_map.dart';
 import 'compoents/images_view.dart';
 import 'compoents/map_screen.dart';
+import 'cubit/user_report_cubit.dart';
 
 class UserReportScreen extends StatefulWidget {
   String uid;
 
   UserReportScreen(this.uid);
 
+
   @override
   State<UserReportScreen> createState() => _UserReportScreenState();
 }
 
 class _UserReportScreenState extends State<UserReportScreen> {
-  DateTime? startDate;
+  DateTime startDate =DateTime.now();
+  VisitCounts? counts;
+
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +41,7 @@ class _UserReportScreenState extends State<UserReportScreen> {
         listener: (context, state) {},
         builder: (context, state) {
           UserReportCubit cubit = UserReportCubit.get(context);
+
           return Scaffold(
             body: SafeArea(
               child: Column(
@@ -41,20 +50,29 @@ class _UserReportScreenState extends State<UserReportScreen> {
                     padding: EdgeInsets.symmetric(
                         horizontal: getProportionateScreenHeight(20),
                         vertical: getProportionateScreenHeight(10)),
-                    child: CustomButton(
+                    child:
+                    CustomButton(
                       height: 65,
                       press: () {
                         showDatePicker(
                           context: context,
+
                           initialDate: DateTime.now(),
                           firstDate: DateTime(2020, 12, 31),
-                          lastDate: DateTime.now(),
-                        ).then((value) {
-                          cubit.getUserLocation(
-                              userId: widget.uid, startDate: value!);
+                     lastDate: DateTime(2025, 12, 31)
+                        ).then((value) async {
+
+
+
                           setState(() {
-                            startDate = value;
+                            startDate = value!;
                           });
+                          VisitCounts fetchedCounts = await calculateVisitCountsForUser(widget.uid, startDate,value??startDate);
+                          setState(() {
+                            counts = fetchedCounts;
+                          });
+
+                          cubit.getUserLocation(userId: widget.uid, startDate: startDate);
                         });
                       },
                       text: "إختر تاريخ البداية",
@@ -69,180 +87,187 @@ class _UserReportScreenState extends State<UserReportScreen> {
                         showDatePicker(
                           context: context,
                           initialDate: DateTime.now(),
-                          firstDate: DateTime(2020, 12, 31),
-                          lastDate: DateTime.now(),
-                        ).then((value) {
-                          cubit.getUserLocation(
-                              userId: widget.uid,
-                              startDate: startDate!,
-                              endDate: value!);
+                          firstDate: DateTime(2020,12, 31),
+                            lastDate: DateTime(2025,12, 31)
+                        ).then((value) async {
+
+
+                          if(startDate !=null&&value !=null){
+                            cubit.getUserLocation(
+                                userId: widget.uid,
+                                startDate: startDate,
+                                endDate: value);
+
+
+
+                              VisitCounts fetchedCounts =await  calculateVisitCountsForUser(widget.uid, startDate,value );
+
+                              setState(() {
+                                counts = fetchedCounts;
+                              });
+                            }
+                          else if(value==startDate){
+
+
+                          }
+
+
+
+
                         });
                       },
                       text: "إختر تاريخ الإنتهاء",
                     ),
                   ),
                   SizedBox(height: getProportionateScreenHeight(30)),
+                  Center(child: Text('الزيارات المكتملة ',style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600)),),
                   cubit.ReportList.length == 0
-                      ? buildTotal(cubit.totalList  , cubit)
+                      ? buildTotal(cubit.totalList, cubit)
                       : Expanded(
                           child: Column(
                             children: [
                               Expanded(
                                 child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal:
+                                  padding: EdgeInsets.symmetric(horizontal:
                                           getProportionateScreenHeight(15)),
                                   child: ListView.separated(
                                       itemBuilder: (context, index) {
                                         return InkWell(
                                           onTap: () {
-                                            navigateTo(
-                                                context,
-                                                ImageViewPage(
-                                                    '${cubit.ReportList[index].image}'));
-                                          },
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color: Colors.grey),
-                                                borderRadius:
-                                                    BorderRadius.circular(20)),
-                                            child: Padding(
-                                              padding: EdgeInsets.all(5),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.start,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Container(
-                                                    height: SizeConfigManger
-                                                            .bodyHeight *
-                                                        .14,
-                                                    width: SizeConfigManger
-                                                            .bodyHeight *
-                                                        .12,
-                                                    decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(10),
-                                                        image: DecorationImage(
-                                                            fit: BoxFit.cover,
-                                                            image: cubit
-                                                                        .ReportList[
-                                                                            index]
-                                                                        .image !=
-                                                                    ConstantsManger
-                                                                        .DEFULT
-                                                                ? NetworkImage(
-                                                                    "${cubit.ReportList[index].image}")
-                                                                : AssetImage(
-                                                                        "assets/images/att.jpg")
-                                                                    as ImageProvider)),
+                                            AwesomeDialog(context: context,
+                                            width: 350,
+                                            title: "ddddddddddddd",
+                                            animType: AnimType.TOPSLIDE,
+
+                                            body:
+                                            Container(
+                                              width: 350,
+
+                                              child: Card(
+                                                elevation: 5,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(
+                                                      horizontal: 24.0, vertical: 24),
+                                                  child: FadeAnimation(
+                                                    0.5,
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      mainAxisAlignment: MainAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          "Name : ${cubit.ReportList[index].userName}" ,
+                                                          style: TextStyle(
+                                                              fontSize: 24,
+                                                              fontWeight: FontWeight.w600),
+                                                        ),
+                                                        Text(
+                                                          "Note :${cubit.ReportList[index].note} " ,
+                                                          style: TextStyle(
+                                                              fontSize: 24,
+                                                              fontWeight: FontWeight.w600)
+                                                        ),
+                                                        Text(overflow: TextOverflow.ellipsis,
+                                                          "Adress :${cubit.ReportList[index].address} "  ,
+                                                          maxLines: 2,
+                                                          style: TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight: FontWeight.w600),
+                                                        ),
+                                                        Text(
+                                                          "Date : ${cubit.ReportList[index].date}"  ,
+                                                          style: TextStyle(
+                                                              fontSize: 24,
+                                                              fontWeight: FontWeight.w600),
+                                                        ),
+                                                        // Text(
+                                                        //   "Class : " ,
+                                                        //   style: TextStyle(
+                                                        //       fontSize: 24,
+                                                        //       fontWeight: FontWeight.w600),
+                                                        // ),
+                                                        // Text(
+                                                        //   "specilty : ",
+                                                        //   style: TextStyle(
+                                                        //       fontSize: 24,
+                                                        //       fontWeight: FontWeight.w600),
+                                                        // ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                  SizedBox(
-                                                    width:
-                                                        getProportionateScreenHeight(
-                                                            20),
-                                                  ),
-                                                  Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      AppText(
-                                                          text:
-                                                              "${cubit.ReportList[index].userName}",
-                                                          color: cubit
-                                                                      .ReportList[
-                                                                          index]
-                                                                      .isMocking ==
-                                                                  false
-                                                              ? Colors.black
-                                                              : Colors.red,
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                      SizedBox(
-                                                          height:
-                                                              getProportionateScreenHeight(
-                                                                  5)),
-                                                      AppText(
-                                                        text:
-                                                            "${cubit.ReportList[index].description}",
-                                                        color: cubit
-                                                                    .ReportList[
-                                                                        index]
-                                                                    .isMocking ==
-                                                                false
-                                                            ? Colors.black
-                                                            : Colors.red,
-                                                      ),
-                                                      SizedBox(
-                                                          height:
-                                                              getProportionateScreenHeight(
-                                                                  5)),
-                                                      AppText(
-                                                          text:
-                                                              "${cubit.ReportList[index].date}",
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: cubit
-                                                                      .ReportList[
-                                                                          index]
-                                                                      .isMocking ==
-                                                                  false
-                                                              ? Colors.black
-                                                              : Colors.red),
-                                                      SizedBox(
-                                                          height:
-                                                              getProportionateScreenHeight(
-                                                                  5)),
-                                                      AppText(
-                                                          text:
-                                                              "${cubit.ReportList[index].time}",
-                                                          color: cubit
-                                                                      .ReportList[
-                                                                          index]
-                                                                      .isMocking ==
-                                                                  false
-                                                              ? Colors.black
-                                                              : Colors.red),
-                                                      SizedBox(
-                                                          height:
-                                                              getProportionateScreenHeight(
-                                                                  5)),
-                                                      InkWell(
-                                                        onTap: () {
-                                                          LatLng _postion = LatLng(
-                                                              cubit
-                                                                  .ReportList[
-                                                                      index]
-                                                                  .lat!,
-                                                              cubit
-                                                                  .ReportList[
-                                                                      index]
-                                                                  .lon!);
-                                                          navigateTo(
-                                                              context,
-                                                              MapScreen(
-                                                                  "${cubit.ReportList[index].userName}",
-                                                                  _postion,
-                                                                  "${cubit.ReportList[index].time}"));
-                                                        },
-                                                        child: AppText(
-                                                            color: Colors.blue,
-                                                            textDecoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                            text:
-                                                                "View on Map"),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
+                                                ),
                                               ),
                                             ),
-                                          ),
+
+
+
+                                            )..show();
+                                          },
+                                          child:
+
+                                          Container(
+                                            height: MediaQuery.of(context).size.height*0.10,
+                                            width: MediaQuery.of(context).size.width*0.7,
+                                            child: Card(
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
+                                              
+                                              elevation: 10,
+                                              child:
+                                                  Row(
+                                                   children: [
+                                                     Container(
+                                                         //clipBehavior: Clip.antiAlias,
+                                                         width: 100,
+                                                         height: MediaQuery.of(context).size.height*0.14,
+                                                         decoration: BoxDecoration(
+                                                           
+                                                           borderRadius: BorderRadius.circular(35),
+                                                           image: DecorationImage(
+                                                             fit: BoxFit.cover,
+                                                               image: cubit
+                                                                   .ReportList[
+                                                               index]
+                                                                   .image !=
+                                                                   ConstantsManger
+                                                                       .DEFULT
+                                                                   ? NetworkImage(
+                                                                   "${cubit.ReportList[index].image}")
+                                                                   : AssetImage(
+                                                                   "assets/images/att.jpg")
+                                                               as ImageProvider)
+
+
+                                                         ),),
+                                                     Padding(
+                                                       padding: const EdgeInsets.all(10.0),
+                                                       child: Column(
+
+                                                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                         crossAxisAlignment: CrossAxisAlignment.start,
+                                                         children: [
+                                                           Expanded(
+                                                             child: Text("${cubit.ReportList[index].userName}",style: TextStyle(
+                                                               fontSize: 20,
+                                                             ),overflow: TextOverflow.ellipsis),
+                                                           ),
+                                                           Text("${cubit.ReportList[index].date}",style: TextStyle(
+                                                             fontSize: 12,
+                                                           ),),
+
+                                                           Text("${cubit.ReportList[index].time}",style: TextStyle(
+                                                             fontSize: 12,
+                                                           ),)
+                                                   ],
+                                                  ),
+                                                     )
+
+                                                ],
+                                              ),
+
+                                            ),
+                                             ),
+
                                         );
                                       },
                                       separatorBuilder: (context, index) =>
@@ -253,40 +278,77 @@ class _UserReportScreenState extends State<UserReportScreen> {
                                       itemCount: cubit.ReportList.length),
                                 ),
                               ),
+                              (counts!=null)?
                               InkWell(
                                 onTap: () {
-                                  LatLng initalPostion = LatLng(cubit.ReportList.first.lat!, cubit.ReportList.first.lon!);
+                                  LatLng initalPostion = LatLng(
+                                      cubit.ReportList.first.lat!,
+                                      cubit.ReportList.first.lon!);
                                   navigateTo(
                                       context,
-                                      AnimatedMapScreen(cubit.totalList, initalPostion));
+                                      AnimatedMapScreen(
+                                          cubit.totalList, initalPostion));
                                 },
                                 child: Container(
                                   width: double.infinity,
-                                  height: SizeConfigManger.bodyHeight * .1,
+                                  height: SizeConfigManger.bodyHeight * .15,
                                   decoration: BoxDecoration(
                                       color: ColorsManger.darkPrimary,
                                       borderRadius: BorderRadius.only(
                                           topLeft: Radius.circular(30),
                                           topRight: Radius.circular(30))),
-                                  child: Center(
+                                  child:Center(
                                     child: Column(
                                       children: [
-                                        AppText(
-                                            textSize: 28,
+                                        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [  AppText(
+                                            textSize: 21,
                                             color: Colors.white,
-                                            text: "مجموع الزيارات : ${cubit.totalVistes}"),
-                                        SizedBox(
-                                          height: getProportionateScreenHeight(10),
-                                        ),
-                                        AppText(
-                                            textSize: 28,
-                                            color: Colors.white,
-                                            text: " مجموع نقاط التتبع : ${cubit.ReportListShown.length}"),
+                                            text: "مجموع الزيارات : ${counts?.totalVis}"),
+                                          SizedBox(
+                                            height: getProportionateScreenHeight(10),
+                                          ),
+                                          AppText(
+                                              textSize: 18,
+                                              color: Colors.white,
+                                              text: " مجموع نقاط التتبع : ${cubit.ReportListShown.length}"),],),
+
+                                        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [  AppText(
+                                              textSize: 21,
+                                              color: Colors.white,
+                                              text: "داخل خط السير : ${counts?.plannedVisits}"),
+                                            SizedBox(
+                                              height: getProportionateScreenHeight(10),
+                                            ),
+                                            AppText(
+                                                textSize: 18,
+                                                color: Colors.white,
+                                                text: " خارج خط السير : ${counts?.unplannedVisits}"),],),
+
+                                        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [  AppText(
+                                              textSize: 21,
+                                              color: Colors.white,
+                                              text: "الزيارات المكتملة : ${counts?.completedVisits}"),
+                                            SizedBox(
+                                              height: getProportionateScreenHeight(10),
+                                            ),
+                                            AppText(
+                                                textSize: 18,
+                                                color: Colors.white,
+                                                text: " الزيارات الغير المكتملة : ${counts?.uncompletedVisits}"),],)
+
                                       ],
                                     ),
-                                  ),
+                                  ) /*Center(
+                                    child: AppText(
+                                        textSize: 30,
+                                        color: Colors.white,
+                                        text: "Total Visits : ${cubit.totalVistes}"),
+                                  )*/,
                                 ),
-                              ),
+                              ):Center(child: CircularProgressIndicator(color: Colors.red,strokeWidth: 2,)),
                             ],
                           ),
                         ),
@@ -299,30 +361,30 @@ class _UserReportScreenState extends State<UserReportScreen> {
     );
   }
 
-  Widget buildTotal(List<LocationModel> list , UserReportCubit cubit) {
+  Widget buildTotal(List<LocationModel> list, UserReportCubit cubit) {
     if (list.isEmpty) {
       return Center(
-        child: AppText(text: 'No Data',fontWeight: FontWeight.bold,textSize: 25),
+        child: AppText(text: 'No Data', fontWeight: FontWeight.bold, textSize: 25),
       );
-    }else{
+    } else {
+
       return Padding(
-        padding: EdgeInsets.only(top: SizeConfigManger.bodyHeight*.2),
+        padding: EdgeInsets.only(top: SizeConfigManger.bodyHeight * .2),
         child: InkWell(
           onTap: () {
-            LatLng initalPostion = LatLng(
-               list.first.lat!,
-               list.first.lon!);
+            LatLng initalPostion = LatLng(list.first.lat!, list.first.lon!);
             navigateTo(context, AnimatedMapScreen(cubit.totalList, initalPostion));
           },
           child: Padding(
-            padding:  EdgeInsets.symmetric(horizontal: getProportionateScreenHeight(20)),
+            padding: EdgeInsets.symmetric(
+                horizontal: getProportionateScreenHeight(20)),
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: getProportionateScreenHeight(20)),
+              padding: EdgeInsets.symmetric(
+                  vertical: getProportionateScreenHeight(20)),
               decoration: BoxDecoration(
                   color: ColorsManger.darkPrimary,
-                borderRadius: BorderRadius.circular(getProportionateScreenHeight(10))
-              ),
+                  borderRadius: BorderRadius.circular(getProportionateScreenHeight(10))),
               child: Center(
                 child: Column(
                   children: [
@@ -344,6 +406,6 @@ class _UserReportScreenState extends State<UserReportScreen> {
           ),
         ),
       );
-  }
+    }
   }
 }

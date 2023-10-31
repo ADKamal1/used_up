@@ -1,12 +1,12 @@
 class ConstantsManger {
   static const String DEFULT = 'default';
-  static const String USERS = 'users';
+  static const String USERS = 'usersV2';
   static const String ATTENDANCE = 'attendance';
   static const String CUSTOMERSList = 'customers';
-  static const String ONLINEREPORT = 'onlineReports';
+  static const String ONLINEREPORT = 'onlineReportsV2';
   static const String CUSTOMERSVistind = 'customersvisting';
   static const String ADMINOk = 'ok';
-  static const String LOCATION = 'location';
+  static const String LOCATION = 'locationV2';
   static const String ADMINNo = 'no';
 
 

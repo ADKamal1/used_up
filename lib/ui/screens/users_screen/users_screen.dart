@@ -10,6 +10,8 @@ class UsersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    MainCubit cubit = MainCubit.get(context)..getUsers();
     return BlocConsumer<MainCubit, MainState>(
       listener: (context, state) {},
       builder: (context, state) {
@@ -24,7 +26,9 @@ class UsersScreen extends StatelessWidget {
                         SizedBox(height: getProportionateScreenHeight(10)),
                     itemCount: cubit.usersList.length),
               )
-            : Center();
+            : Center(
+
+        );
       },
     );
   }

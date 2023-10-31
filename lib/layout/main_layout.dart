@@ -11,12 +11,26 @@ class MainLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => MainCubit()..getUsers(),
+    return MultiBlocProvider(
+      providers: [
+      BlocProvider(  create: (context) => MainCubit()..getUsers()),
+
+        BlocProvider(  create: (context) => MainCubit()..getSubGroups()),
+
+        BlocProvider(  create: (context) => MainCubit()..getAllGroups()),
+
+        BlocProvider(  create: (context) => MainCubit()..getAllType()),
+      ],
+
+
       child: BlocConsumer<MainCubit, MainState>(
         listener: (context, state) {},
         builder: (context, state) {
           MainCubit cubit = MainCubit.get(context);
+          cubit.getAllType();
+          cubit.getAllGroups();
+          cubit.getSubGroups();
+
           return cubit.isSearch
               ? WillPopScope(
                   onWillPop: () {

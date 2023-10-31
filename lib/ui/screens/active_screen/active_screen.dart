@@ -20,7 +20,9 @@ class ActiveUsersScreen extends StatelessWidget {
                     separatorBuilder: (context, index) =>SizedBox(height: getProportionateScreenHeight(10)),
                     itemCount: cubit.userActiveList.length),
               )
-            : Center();
+            : Center(
+          child: CircularProgressIndicator(color: Colors.red,strokeWidth: 2),
+        );
       },
     );
   }

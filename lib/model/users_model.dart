@@ -16,7 +16,9 @@ class UserModel {
   String? token;
   bool? isActive;
   dynamic ? ver;
-
+  String? group;
+  String? subgroup;
+  String ?type;
   UserModel(
       {this.id = ConstantsManger.DEFULT,
         this.image = ConstantsManger.DEFULT,
@@ -32,7 +34,7 @@ class UserModel {
         this.isActive = true,
         this.lat,
         this.ver,
-        this.lon});
+        this.lon,this.group,this.subgroup,this.type});
 
   UserModel.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -42,6 +44,7 @@ class UserModel {
     email = json['email'];
     password = json['password'];
     phone = json['phone'];
+
     isOnline = json['isOnline'];
     ver = json['ver'];
     info = json['info'];
@@ -50,6 +53,9 @@ class UserModel {
     lat = json['lat'];
     lon = json['lon'];
     isActive = json['isActive'];
+    group=json['group'];
+    subgroup=json['subgroup'];
+    type=json['type'];
   }
 
   Map<String, dynamic> toMap() {
@@ -69,6 +75,10 @@ class UserModel {
       "isActive": isActive,
       "searchName": searchName,
       "ver": ver,
+      "group":group,
+      "subgroup":subgroup,
+      "type":type,
+
     };
   }
 }

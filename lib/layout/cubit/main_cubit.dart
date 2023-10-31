@@ -87,10 +87,57 @@ class MainCubit extends Cubit<MainState> {
     emit(GetSeachScreen());
   }
 
-///////////////////////// UsersScreen /////////////////////////
+
+  List<String> groupsList=[];
+
+  List<String> subgroupsList=[];
+  List<String> typesList=[];
+  void getAllType()  {
+
+    FirebaseFirestore.instance
+        .collection("dropdown data").doc("Type").get().
+
+    then((value) {
+      if (value.data()!['Type'] != null) {
+        typesList.clear();
+        for (String type in value.data()!['Type']) {
+          typesList.add(type);
+        }}
+    });
+
+  }
+  void getAllGroups()  {
+
+    FirebaseFirestore.instance
+        .collection("dropdown data").doc("Groups").get().
+
+    then((value) {
+      if (value.data()!['Groups'] != null) {
+        groupsList.clear();
+        for (String group in value.data()!['Groups']) {
+          groupsList.add(group);
+          print(group);
+        }}
+    });
+
+  }
+
+  void getSubGroups()  {
+
+    FirebaseFirestore.instance
+        .collection("dropdown data").doc("SupGroups").get().
+
+    then((value) {
+      if (value.data()!['SupGroups'] != null) {
+        subgroupsList.clear();
+        for (String group in value.data()!['SupGroups']) {
+          subgroupsList.add(group);
+        }}
+    });
+
+  }
 
   List<UserModel> usersList = [];
-
   void getUsers() {
     emit(GetAllUsersLoading());
     FirebaseFirestore.instance
@@ -151,13 +198,15 @@ class MainCubit extends Cubit<MainState> {
   List<UserModel> userActiveList = [];
 
   void getActiveUsers() {
+
     emit(GetActiveUsersLoading());
-    FirebaseFirestore.instance.collection("Online").get()
+    FirebaseFirestore.instance.collection("OnlineV2").get()
       .then((value) {
-        userActiveList.clear();
+
+      userActiveList.clear();
         value.docs.forEach((element) async {
           await FirebaseFirestore.instance
-              .collection("users")
+              .collection("usersV2")
               .doc(element.id)
               .get()
               .then((user) {
@@ -174,7 +223,8 @@ class MainCubit extends Cubit<MainState> {
   void createUser(
       {required String username,
       required String password,
-      required String phone}) {
+      required String phone,
+        required String group,required String subgroup}) {
     emit(CreateUserLoading());
     UserModel userModel = UserModel(
         username: username,
@@ -190,9 +240,9 @@ class MainCubit extends Cubit<MainState> {
         info: ConstantsManger.DEFULT,
         email: ConstantsManger.DEFULT,
         token: ConstantsManger.DEFULT,
-        id: ConstantsManger.DEFULT);
+        id: ConstantsManger.DEFULT,subgroup: subgroup,group: group,);
     FirebaseFirestore.instance
-        .collection(ConstantsManger.USERS)
+        .collection("usersV2")
         .where("phone", isEqualTo: phone)
         .get()
         .then((value) {
@@ -203,12 +253,12 @@ class MainCubit extends Cubit<MainState> {
                 email: "${mail}@gmail.com", password: password)
             .then((user) {
           FirebaseFirestore.instance
-              .collection(ConstantsManger.USERS)
+              .collection("usersV2")
               .doc(user.user!.uid)
               .set(userModel.toMap())
               .then((val) {
             FirebaseFirestore.instance
-                .collection(ConstantsManger.USERS)
+                .collection("usersV2")
                 .doc(user.user!.uid)
                 .update({"id": user.user!.uid});
           });
